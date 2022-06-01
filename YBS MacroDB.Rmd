@@ -1,0 +1,360 @@
+---
+title: "ybs MacroDB"
+output: flexdashboard::flex_dashboard
+date: "31/5/2022"
+runtime: shiny
+
+---
+```{r}
+library(tidyverse)
+library(highcharter)
+library(tidyquant)
+library(PerformanceAnalytics)
+library(timetk)
+library(scales)
+library(zoo)
+library(shinydashboard)
+library(flexdashboard)
+library(shiny)
+library(jsonlite)
+library(magrittr)
+library(dplyr)
+library(httr)
+library(rvest)
+library(tidyr)
+library(tibble)
+library(DT)
+library(fredr)
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(dplyr)
+library(rvest)
+library(stringr)
+library(tidyverse)
+library(ggplot2)
+library(quantmod)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(nycflights13)
+library(dygraphs)
+
+URL <- "https://finviz.com/groups.ashx?g=sector&v=140&o=name"
+res <- read_html(URL)
+
+# Case 1. Table
+# Sys.setlocale("LC_ALL", "English")
+return<- res %>% html_table()
+# Sys.setlocale("LC_ALL", "Korean")
+
+```
+Page 1
+=====================================  
+    
+Column {data-width=600}
+-------------------------------------
+    
+### Chart 1
+    
+```{r}
+# return[8]
+df <- data.frame(return[8])
+
+df1 <- df[-9]
+# df1[10]
+df2 <- df1[-10] 
+# df2
+
+colnames(df2) <-c('No','Sector', '1week', '1M', '3M', '6M ', '1Y', 'YTD',"Avg Volume", "Change","Volume" )
+dff <- df2 %>% slice(-1)
+finviz <- dff %>% select(-1)
+
+#열이동 및 추가
+finviz <- finviz %>% mutate('Avg_Volume' = finviz$`Avg Volume`)
+finviz <- finviz[-8]
+
+#이름명 변경
+finviz <- rename(finviz, Avg_vol= Avg_Volume)
+
+#Character이기 때문에숫자로 변경(1week, 1M, 3M, 6M, 1Y, YTD, change)
+#1week
+finviz$`1week` <- gsub("%",'',finviz$`1week`)
+finviz$`1week` <- as.numeric(finviz$`1week`)
+# finviz$`1week`
+# class(finviz$`1week`)
+fin1w <- finviz$`1week`
+
+#1M
+finviz$`1M` <- gsub("%",'',finviz$`1M`)
+finviz$`1M` <- as.numeric(finviz$`1M`)
+# finviz$`1M`
+# class(finviz$`1M`)
+fin1m <- finviz$`1M`
+# finviz
+
+#3M
+finviz$`3M` <- gsub("%",'',finviz$`3M`)
+finviz$`3M` <- as.numeric(finviz$`3M`)
+# class(finviz$`3M`)
+fin3m <- finviz$`3M`
+# fin3m
+
+#6M
+finviz$`6M` <- gsub("%",'',finviz$`6M`)
+finviz$`6M` <- as.numeric(finviz$`6M`)
+# class(finviz$`6M`)
+fin6m <- finviz$`6M`
+
+#1Y
+finviz$`1Y` <- gsub("%",'',finviz$`1Y`)
+finviz$`1Y` <- as.numeric(finviz$`1Y`)
+# class(finviz$`1Y`)
+fin1y <- finviz$`1Y`
+# fin1y
+
+#YTD
+finviz$`YTD` <- gsub("%",'',finviz$`YTD`)
+finviz$`YTD` <- as.numeric(finviz$`YTD`)
+# finviz$`YTD`
+# class(finviz$`YTD`)
+finytd <- finviz$`YTD`
+# finytd
+
+#chg
+finviz$`Change` <- gsub("%",'',finviz$`Change`)
+finviz$`Change` <- as.numeric(finviz$`Change`)
+# finviz$`Change`
+# class(finviz$`Change`)
+finchg <- finviz$`Change`
+# finchg
+
+#Volume
+finviz$`Volume` <- gsub("M",'',finviz$`Volume`)
+finviz$`Volume` <- as.numeric(finviz$`Volume`)
+# finviz$`Volume`
+# class(finviz$`Volume`)
+finVolM <- finviz$`Volume`
+# finVolM
+
+#다시합쳐서 데이터프레임생성
+dffvz <- data.frame(sector = finviz[1],
+                    week1 = fin1w)
+dffvz <- cbind(dffvz, fin1m, fin3m, fin6m, fin1y, finytd,finchg, finVolM)
+colnames(dffvz) <-c('Sector', '1week', '1M', '3M', '6M ', '1Y', 'YTD', "Change","Volume($M)" )
+# dffvz
+
+# #다운로드 받은 파일을 생성한 폴더 내 csv 파일로 저장
+# write.csv(dffvz, file = "fvz_return.csv")
+
+#그래프 그리기 
+ggplot(data=dffvz,aes(x=Sector, y=`1week`)) + 
+  geom_bar(stat="identity", width = 0.5, fill='steelblue') + ggtitle('US Sector return')+  #그래프의제목 
+  theme(plot.title = element_text(size = 25, face = 'bold', colour = 'steelblue'))+ coord_flip() 
+
+
+```
+   
+Column {data-width=400}
+-------------------------------------
+   
+### Chart 2
+
+```{r}
+ggplot(data=dffvz,aes(x=Sector, y=`1M`)) + 
+  geom_bar(stat="identity", width = 0.5, fill='steelblue') + ggtitle('US Sector return')+  #그래프의제목 
+  theme(plot.title = element_text(size = 25, face = 'bold', colour = 'steelblue'))+ coord_flip()
+
+
+```   
+ 
+### Chart 3
+    
+```{r}
+##################원화 실질실효환율 검색해서 찾기###############
+effective_krw <- fredr_series_search_text(
+  search_text = "RBKRBIS",
+  order_by = "popularity",
+  sort_order = "desc",
+  limit = 1
+)
+effective_krw
+
+#실질실효환율원화 id만 추출해서 저장
+eff_usdkrw <- effective_krw$id
+eff_usdkrw
+# 
+#추출된 id를 그래프로 작성
+eff_usdkrw %>%  fredr(observation_start = as.Date("1994-01-01"), observation_end = as.Date("2022-03-31")) %>% ggplot(data = ., mapping = aes(x = date, y = value)) + geom_line(linetype = 'solid', color = 'blue', size = 1) + labs(x = "observation date", y = 'usdkrw', color = "Series")
+
+```
+
+Page 2 {data-orientation=rows}
+=====================================     
+   
+Row {data-height=600}
+-------------------------------------
+
+### Chart 1
+
+```{r}
+#vix 검색해서 찾기
+vix_fred <- fredr_series_search_text(
+  search_text = "VIXCLS",
+  order_by = "popularity",
+  sort_order = "desc",
+  limit = 1
+)
+#vix의 id만 추출해서 저장
+vix_fred <- vix_fred$id
+
+#vix의 그래프 그리기
+vix_fred %>% fredr(observation_start = as.Date("1994-01-01"), observation_end = as.Date("2022-03-31")) %>%
+  ggplot(data = ., aes(x = date, y = value))+
+  geom_line(linetype = 'solid', color = 'black', size=1)+
+  ggtitle('VIXCLS')
+```
+
+Row {data-height=400}
+-------------------------------------
+   
+### Chart 2
+
+```{r}
+
+#M2 검색해서 찾기
+M2_fred <- fredr_series_search_text(
+  search_text = "M2SL",
+  order_by = "popularity",
+  sort_order = "desc",
+  limit = 1
+)
+#vix의 id만 추출해서 저장
+M2_fred <- M2_fred$id
+
+#vix의 그래프 그리기
+M2_fred %>% fredr(observation_start = as.Date("1994-01-01"), observation_end = as.Date("2022-03-31")) %>%
+  ggplot(data = ., aes(x = date, y = value))+
+  geom_line(linetype = 'solid', color = 'purple', size=1)+
+  ggtitle('M2SL')
+```   
+    
+### Chart 3
+
+```{r}
+
+```
+
+Page 3 {data-orientation=rows}
+=====================================     
+   
+Row {data-height=600}
+-------------------------------------
+
+### Chart 1
+
+```{r}
+##월간수익률
+monthly_returns <- function(ticker, base_year)
+{
+  #obtain stock price data from Yahoo 
+  stock <- getSymbols(ticker, src = 'yahoo', auto.assign = FALSE)
+  
+  #remove missing values
+  stock <- na.omit(stock)
+  
+  #keep only adjusted closing stock prices
+  stock <- stock[,6]
+  
+  #confine our observations to begin at the base year and end at the last available trading day
+  
+  horizon <- paste0(as.character(base_year), "/" , as.character(Sys.Date()))
+  stock <- stock[horizon]
+  
+  #calculate monthly arithmetic returns
+  data <- periodReturn(stock, period ="monthly", type = "arithmetic")
+  
+  #Assign to the global environment to be accessible
+  assign(ticker, data, envir = .GlobalEnv)
+  
+}
+
+#Call our function for each stock
+acwi <- monthly_returns('ACWI',2012)
+vt <- monthly_returns('VT',2012)
+voo <- monthly_returns('VOO',2012)
+ivv <- monthly_returns('IVV',2012)
+dia <- monthly_returns('DIA',2012)
+mgk <- monthly_returns('MGK',2012)
+vgk <- monthly_returns('VGK',2012)
+fez <- monthly_returns('FEZ',2012)
+dxj <- monthly_returns('DXJ',2012)
+vwo <- monthly_returns('VWO',2012)
+dem <- monthly_returns('DEM',2012)
+
+# voo
+# ivv
+# diaso
+# mgk 
+# vgk
+# fez 
+# dxj 
+# vwo
+# DEM
+
+#merge all the data and rename columns
+returns <- merge.xts(acwi, vt, voo, ivv, dia, mgk, vgk, fez, dxj, vwo, dem)
+colnames(returns) <- c("ACWI", "VT", "VOO", "IVV", "DIA","MGK","VGK","DXJ","VWO","FEZ", "DEM")
+
+#produce interactive chart of stock returns
+dygraph(returns, main = "return") %>% 
+  dyAxis("y", label = "Return", valueRange = c(-0.2, 0.2, 5)) %>% 
+  dyRangeSelector(dateWindow = c("2021-12-01", "2022-05-31")) %>% 
+  dyOptions(colors = RColorBrewer::brewer.pal(4, "Set2"))
+
+# # Print last 5 rows of the data, rounded to 4 decimal places
+# round(tail(returns, n = 5), 4)
+
+# corrplot::corrplot(cor(returns), method = number)
+
+
+```
+
+Row {data-height=400}
+-------------------------------------
+   
+### Chart 2
+
+```{r}
+##Assign weights
+
+wts <- c(9.09/100 , 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100)
+
+
+# Construct a portfolio using our returns object and weights
+# Only select first three columns to isolate our individual stock data
+portfolio_returns <- Return.portfolio(R = returns[,1:11], weights = wts, wealth.index = TRUE)
+
+# head(R)
+# head(portfolio_returns)
+# ?Return.portfolio()
+
+# Then isolate our S&P500 data
+benchmark_returns <- Return.portfolio(R = returns[,1], wealth.index = TRUE)
+
+# Merge the two
+comp <- merge.xts(portfolio_returns, benchmark_returns)
+colnames(comp) <- c("Portfolio", "Benchmark")
+# head(comp)
+
+#Build an interactive graph to compare performance
+
+dygraph(comp, main = "Portfolio Performancevs. Benchmark") %>% 
+  dyAxis("y", label = "Amount($)")
+
+```   
+    
+### Chart 3
+
+```{r}
+```
