@@ -40,6 +40,9 @@ library(stringr)
 library(nycflights13)
 library(dygraphs)
 
+fredr_set_key("f6d9f557575af9fda52f4f8685193d2a")
+# FRED_API_KEY=f6d9f557575af9fda52f4f8685193d2a
+
 URL <- "https://finviz.com/groups.ashx?g=sector&v=140&o=name"
 res <- read_html(URL)
 
@@ -48,6 +51,10 @@ res <- read_html(URL)
 return<- res %>% html_table()
 # Sys.setlocale("LC_ALL", "Korean")
 
+```
+Page 1
+=====================================  
+    
 ```
 Page 1
 =====================================  
@@ -178,11 +185,10 @@ effective_krw <- fredr_series_search_text(
   sort_order = "desc",
   limit = 1
 )
-effective_krw
 
 #실질실효환율원화 id만 추출해서 저장
 eff_usdkrw <- effective_krw$id
-eff_usdkrw
+
 # 
 #추출된 id를 그래프로 작성
 eff_usdkrw %>%  fredr(observation_start = as.Date("1994-01-01"), observation_end = as.Date("2022-03-31")) %>% ggplot(data = ., mapping = aes(x = date, y = value)) + geom_line(linetype = 'solid', color = 'blue', size = 1) + labs(x = "observation date", y = 'usdkrw', color = "Series")
