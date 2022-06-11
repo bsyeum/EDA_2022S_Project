@@ -1,0 +1,810 @@
+---
+title: "MacroDB"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    theme:
+      version: 4
+      bootswatch: journal
+      # bg: "#101010"
+      # fg: "#FDF7F7" 
+      # primary: "#ED79F9"
+      base_font: !expr bslib::font_google("Prompt")
+      code_font: !expr bslib::font_google("JetBrains Mono")
+    orientation: rows
+---
+```{r setup, include=FALSE}
+library(patchwork)
+library(tidyverse)
+library(xts)
+library(tidyquant)
+library(PerformanceAnalytics)
+library(timetk)
+library(scales)
+library(zoo)
+library(shinydashboard)
+library(flexdashboard)
+library(jsonlite)
+library(magrittr)
+library(dplyr)
+library(httr)
+library(rvest)
+library(tidyr)
+library(tibble)
+library(DT)
+library(fredr)
+library(ggplot2)
+library(purrr)
+library(rvest)
+library(stringr)
+library(tidyverse)
+library(ggplot2)
+library(quantmod)
+library(magrittr)
+library(lubridate)
+library(stringr)
+library(nycflights13)
+library(dygraphs)
+library(highcharter)
+library(PerformanceAnalytics)
+library(timetk)
+library(scales)
+library(zoo)
+library(shinydashboard)
+library(flexdashboard)
+library(shiny)
+library(ggcorrplot)
+library(readxl)
+library(tidyquant)
+
+
+fredr_set_key("f6d9f557575af9fda52f4f8685193d2a")
+# FRED_API_KEY=f6d9f557575af9fda52f4f8685193d2a
+
+
+URL <- "https://finviz.com/groups.ashx?g=sector&v=140&o=name"
+res <- read_html(URL)
+
+# Case 1. Table
+# Sys.setlocale("LC_ALL", "English")
+return<- res %>% html_table()
+# Sys.setlocale("LC_ALL", "Korean")
+
+```
+
+Sidebar {.sidebar}
+=====================================
+  
+```{r}
+fluidRow(
+  column(
+    6,
+    textInput("stock1", "ETF 1", "ACWI")
+  ),
+  column(
+    5,
+    numericInput("w1", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock2", "ETF 2", "DIA")
+  ),
+  column(
+    5,
+    numericInput("w2", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock3", "ETF 3", "IJS")
+  ),
+  column(
+    5,
+    numericInput("w3", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock4", "ETF 4", "EEM")
+  ),
+  column(
+    5,
+    numericInput("w4", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock5", "ETF 5", "AGG")
+  ),
+  column(
+    5,
+    numericInput("w5", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock6", "ETF 6", "QQQ")
+  ),
+  column(
+    5,
+    numericInput("w6", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock7", "ETF 7", "VUG")
+  ),
+  column(
+    5,
+    numericInput("w7", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock8", "ETF 8", "VWO")
+  ),
+  column(
+    5,
+    numericInput("w8", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock9", "ETF 9", "VEU")
+  ),
+  column(
+    5,
+    numericInput("w9", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    6,
+    textInput("stock10", "ETF 10", "DSI")
+  ),
+  column(
+    5,
+    numericInput("w10", "Portf. %", 10, min = 1, max = 100)
+  )
+)
+
+fluidRow(
+  column(
+    7,
+    dateInput("start_date", "Starting Date", "2012-12-31", format = "yyyy-mm-dd")
+  )
+)
+
+fluidRow(
+  column(
+    7,
+    dateInput("end_date", "Ending Date", "2021-07-31", format = "yyyy-mm-dd")
+  )
+)
+
+fluidRow(
+  column(
+    7,
+    selectInput(
+      "rebalance", "Rebalancing Frequency",
+      c(
+        "Annually" = "years",
+        "Monthly" = "months",
+        "Weekly" = "weeks"
+      )
+    )
+  )
+)
+
+fluidRow(
+  column(
+    7,
+    numericInput("window", "Rolling Window (Values from 3 to 36 months)",
+                 12,
+                 min = 3, max = 36, step = 1
+    )
+  )
+)
+
+fluidRow(
+  column(
+    7,
+    numericInput("rfr", "Risk Free Rate (%) (Values from 0.1% to 5%)", 0.5,
+                 min = 0.1, max = 7, step = 0.1
+    )
+  )
+)
+
+fluidRow(
+  column(
+    10,
+    numericInput("mar", "Minimally Acceptable Monthly Return (%) (Values from 0.1% to 5%)", 1,
+                 min = 0.1, max = 5, step = 0.1
+    )
+  )
+)
+
+fluidRow(
+  column(
+    12,
+    selectInput(
+      "bench_mark", "Benchmark ETF",
+      c(
+        "MSCIACWI" = "ACWI","SPDR S&P 500 ETF Trust" = "SPY",
+        "Invesco QQQ ETF Trust" = "QQQ",
+        "SPDR Dow Jones Industrial Average ETF Trust" = "DIA",
+        "Vanguard Growth Index Fund ETF" = "VUG"
+      )
+    )
+  )
+)
+
+actionButton("go", "Submit")
+```
+-------------------------------------
+
+TAA Analysis 
+===================================== 
+Column {data-width=600}
+-------------------------------------
+### TAA Analysis
+
+```{r}
+##월간수익률
+monthly_returns <- function(ticker, base_year)
+{
+  #obtain stock price data from Yahoo 
+  stock <- getSymbols(ticker, src = 'yahoo', auto.assign = FALSE)
+  
+  #remove missing values
+  stock <- na.omit(stock)
+  
+  #keep only adjusted closing stock prices
+  stock <- stock[,6]
+  
+  #confine our observations to begin at the base year and end at the last available trading day
+  
+  horizon <- paste0(as.character(base_year), "/" , as.character(Sys.Date()))
+  stock <- stock[horizon]
+  
+  #calculate monthly arithmetic returns
+  data <- periodReturn(stock, period ="monthly", type = "arithmetic")
+  
+  #Assign to the global environment to be accessible
+  assign(ticker, data, envir = .GlobalEnv)
+  
+}
+
+#Call our function for each stock
+acwi <- monthly_returns('ACWI',2012)
+vt <- monthly_returns('VT',2012)
+voo <- monthly_returns('VOO',2012)
+ivv <- monthly_returns('IVV',2012)
+dia <- monthly_returns('DIA',2012)
+mgk <- monthly_returns('MGK',2012)
+vgk <- monthly_returns('VGK',2012)
+fez <- monthly_returns('FEZ',2012)
+dxj <- monthly_returns('DXJ',2012)
+vwo <- monthly_returns('VWO',2012)
+dem <- monthly_returns('DEM',2012)
+
+# voo
+# ivv
+# diaso
+# mgk 
+# vgk
+# fez 
+# dxj 
+# vwo
+# DEM
+
+#merge all the data and rename columns
+returns <- merge.xts(acwi, vt, voo, ivv, dia, mgk, vgk, fez, dxj, vwo, dem)
+colnames(returns) <- c("ACWI", "VT", "VOO", "IVV", "DIA","MGK","VGK","DXJ","VWO","FEZ", "DEM")
+
+##Assign weights
+
+wts <- c(9.09/100 , 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100, 9.09/100)
+
+
+# Construct a portfolio using our returns object and weights
+# Only select first three columns to isolate our individual stock data
+portfolio_returns <- Return.portfolio(R = returns[,1:11], weights = wts, wealth.index = TRUE)
+
+# head(R)
+# head(portfolio_returns)
+# ?Return.portfolio()
+
+# Then isolate our S&P500 data
+benchmark_returns <- Return.portfolio(R = returns[,1], wealth.index = TRUE)
+
+# Merge the two
+comp <- merge.xts(portfolio_returns, benchmark_returns)
+colnames(comp) <- c("Portfolio", "Benchmark")
+# head(comp)
+
+#Build an interactive graph to compare performance
+
+dygraph(comp, main = "Portfolio Performance vs. Benchmark") %>% 
+  dyAxis("y", label = "Amount($)") %>% dyRangeSelector()
+
+```
+
+Row {data-height=400}
+-------------------------------------
+   
+### Returns
+
+```{r}
+#produce interactive chart of stock returns
+dygraph(returns, main = "return") %>% 
+  dyAxis("y", label = "Return", valueRange = c(-0.2, 0.2, 5)) %>% 
+  dyRangeSelector(dateWindow = c("2021-12-01", "2022-05-31")) %>% 
+  dyOptions(colors = RColorBrewer::brewer.pal(4, "Set2"))
+
+# # Print last 5 rows of the data, rounded to 4 decimal places
+# round(tail(returns, n = 5), 4)
+
+# corrplot::corrplot(cor(returns), method = number)
+
+```   
+    
+### Chart 3
+
+```{r}
+```
+
+
+2. Sector
+=====================================  
+    
+Column {data-width=400}
+-------------------------------------
+    
+### Sector Returns
+    
+```{r}
+# return[8]
+df <- data.frame(return[8])
+
+df1 <- df[-9]
+# df1[10]
+df2 <- df1[-10] 
+# df2
+
+colnames(df2) <-c('No','Sector', '1week', '1M', '3M', '6M ', '1Y', 'YTD',"Avg Volume", "Change","Volume" )
+dff <- df2 %>% slice(-1)
+finviz <- dff %>% select(-1)
+
+#열이동 및 추가
+finviz <- finviz %>% mutate('Avg_Volume' = finviz$`Avg Volume`)
+finviz <- finviz[-8]
+
+#이름명 변경
+finviz <- rename(finviz, Avg_vol= Avg_Volume)
+
+#Character이기 때문에숫자로 변경(1week, 1M, 3M, 6M, 1Y, YTD, change)
+#1week
+finviz$`1week` <- gsub("%",'',finviz$`1week`)
+finviz$`1week` <- as.numeric(finviz$`1week`)
+# finviz$`1week`
+# class(finviz$`1week`)
+fin1w <- finviz$`1week`
+
+#1M
+finviz$`1M` <- gsub("%",'',finviz$`1M`)
+finviz$`1M` <- as.numeric(finviz$`1M`)
+# finviz$`1M`
+# class(finviz$`1M`)
+fin1m <- finviz$`1M`
+# finviz
+
+#3M
+finviz$`3M` <- gsub("%",'',finviz$`3M`)
+finviz$`3M` <- as.numeric(finviz$`3M`)
+# class(finviz$`3M`)
+fin3m <- finviz$`3M`
+# fin3m
+
+#6M
+finviz$`6M` <- gsub("%",'',finviz$`6M`)
+finviz$`6M` <- as.numeric(finviz$`6M`)
+# class(finviz$`6M`)
+fin6m <- finviz$`6M`
+
+#1Y
+finviz$`1Y` <- gsub("%",'',finviz$`1Y`)
+finviz$`1Y` <- as.numeric(finviz$`1Y`)
+# class(finviz$`1Y`)
+fin1y <- finviz$`1Y`
+# fin1y
+
+#YTD
+finviz$`YTD` <- gsub("%",'',finviz$`YTD`)
+finviz$`YTD` <- as.numeric(finviz$`YTD`)
+# finviz$`YTD`
+# class(finviz$`YTD`)
+finytd <- finviz$`YTD`
+# finytd
+
+#chg
+finviz$`Change` <- gsub("%",'',finviz$`Change`)
+finviz$`Change` <- as.numeric(finviz$`Change`)
+# finviz$`Change`
+# class(finviz$`Change`)
+finchg <- finviz$`Change`
+# finchg
+
+#Volume
+finviz$`Volume` <- gsub("M",'',finviz$`Volume`)
+finviz$`Volume` <- as.numeric(finviz$`Volume`)
+# finviz$`Volume`
+# class(finviz$`Volume`)
+finVolM <- finviz$`Volume`
+# finVolM
+
+#다시합쳐서 데이터프레임생성
+dffvz <- data.frame(sector = finviz[1],
+                    week1 = fin1w)
+dffvz <- cbind(dffvz, fin1m, fin3m, fin6m, fin1y, finytd,finchg, finVolM)
+colnames(dffvz) <-c('Sector', '1week', '1M', '3M', '6M ', '1Y', 'YTD', "Change","Volume($M)" )
+# dffvz
+
+# #다운로드 받은 파일을 생성한 폴더 내 csv 파일로 저장
+# write.csv(dffvz, file = "fvz_return.csv")
+
+#그래프 그리기 
+ggplot(data=dffvz,aes(x=Sector, y=`1week`)) + 
+  geom_bar(stat="identity", width = 0.5, fill='steelblue') + ggtitle('US Sector return')+  #그래프의제목 
+  theme(plot.title = element_text(size = 25, face = 'bold', colour = 'steelblue'))+ coord_flip() 
+
+
+```
+
+### Sector Returns
+
+```{r}
+ggplot(data=dffvz,aes(x=Sector, y=`1M`)) + 
+  geom_bar(stat="identity", width = 0.5, fill='steelblue') + ggtitle('US Sector return')+  #그래프의제목 
+  theme(plot.title = element_text(size = 25, face = 'bold', colour = 'steelblue'))+ coord_flip()
+
+
+```   
+
+Column {data-width=400}
+-------------------------------------
+### Sectors Correlation 
+
+
+```{r}
+ticker <- c("XLY", "XLP", "XLE",    "XLF", "XLV",   
+            "XLI", "XLB", "XLK", "XLU", "SPY")  
+
+# And the accompanying sector names for those ETFs.
+
+sector <- c("Consumer Discretionary", "Consumer Staples", 
+            "Energy", "Financials", "Health Care", "Industrials", 
+            "Materials", "Information Technology", "Utilities", "S&P")
+etf_ticker_sector <- tibble(ticker, sector)
+
+# A function to build an xts object of etf returns.
+
+etf_weekly_returns <- function(ticker) {
+  
+  prices <- 
+    getSymbols(ticker, src = 'yahoo', 
+               auto.assign = TRUE, warnings = FALSE) %>% 
+    map(~Cl(get(.))) %>% 
+    reduce(merge) %>%
+    `colnames<-`(ticker)
+
+  prices_period <- to.period(prices, period = "months", OHLC = FALSE)
+  head(prices_period)
+  
+  # get monthly log returns
+  returns <-na.omit(ROC(prices_period, 1, type = "continuous"))
+ 
+  # change date format
+  index(returns) <- as.Date(as.yearmon(index(returns), format = '%Y%m'))
+  
+  #Change the column names to the sector names from our dataframe above.
+  
+  colnames(returns) <- etf_ticker_sector$sector
+  
+  returns
+ 
+}
+
+# Let's pass in our ticker symbols and build an xts object of etf returns
+etf_returns <- etf_weekly_returns(etf_ticker_sector$ticker)
+
+# A function that calculates the rolling correlation between a sector ETF and the SPY SP500 ETF. 
+
+sector_index_correlation <- function(returns, window) {
+  
+  merged_xts <- merge(returns, etf_returns$'S&P')
+  merged_xts$rolling_test <- rollapply(merged_xts, window, 
+                                       function(x) cor(x[,1], x[,2], 
+                                                       use = "pairwise.complete.obs"), 
+                                       by.column = FALSE)
+  
+  names(merged_xts) <- c("Sector Returns", "SPY Returns", "Sector/SPY Correlation")
+  
+  merged_xts
+} 
+
+# Choose a sector ETF and a rolling window and pass them to the function we just build. 
+# Let's go with a 5 month window and the Information Technology sector.
+# We will now have a new xts object with 3 time series: sector returns, SPY returns
+# and the rolling correlation between those return series.
+
+IT_SPY_correlation <- sector_index_correlation(etf_returns$'Information Technology', 6)
+
+# Change colors and theme
+# --------------------------------
+# Argument colors
+### Correlation Matrix
+
+corr <- round(cor(etf_returns), 2)
+ggcorrplot(
+  corr,
+  hc.order = TRUE,
+  type = "lower",
+  outline.color = "white",
+  ggtheme = ggplot2::theme_gray,
+  colors = c("#6D9EC1", "white", "#E46726"),
+  lab = TRUE
+)
+
+
+```
+
+### Time Series Corr
+```{r}
+dygraph(IT_SPY_correlation$'Sector/SPY Correlation', main = "Correlation between SP500 and Tech ETF") %>% 
+  dyAxis("y", label = "Correlation") %>% 
+  dyRangeSelector(height = 20) %>%
+  dyShading(from = "2007-12-01", to = "2009-06-01", color = "#FFE6E6") %>% 
+  dyEvent(x = "2008-09-15", label = "Fin Crisis", labelLoc = "top", color = "red") %>% 
+  dyShading(from = "2020-03-01", to = "2020-12-01", color = "#FFE6E6") %>% 
+  dyEvent(x = "2020-03-23", label = "Covid-19", labelLoc = "top", color = "red")
+```
+
+
+3. Liquidity&Vol 
+=====================================     
+   
+Column {data-height=400}
+-------------------------------------
+
+### VIX Index
+
+```{r}
+#vix 검색해서 찾기
+vix_fred <- fredr_series_search_text(
+  search_text = "VIXCLS",
+  order_by = "popularity",
+  sort_order = "desc",
+  limit = 1
+)
+#vix의 id만 추출해서 저장
+vix_fred <- vix_fred$id
+
+#vix의 그래프 그리기
+vix <- vix_fred %>% fredr(observation_start = as.Date("2000-01-01"), observation_end = as.Date("2022-12-31"))
+vix <- vix %>% select(date, value)
+vix<- xts(vix, order.by = vix$date)
+
+dygraph(vix, main = "VIXindex") %>%
+dyAxis("y", label = "VIX") %>%
+dyRangeSelector(height = 20)
+
+```
+
+### Liquidity Index
+
+```{r}
+#M2 검색해서 찾기
+M2_fred <- fredr_series_search_text(
+  search_text = "M2SL",
+  order_by = "popularity",
+  sort_order = "desc",
+  limit = 1
+)
+
+#M2의 id만 추출해서 저장
+M2_fred <- M2_fred$id
+
+M2YoY<- fredr("M2SL",observation_start = as.Date("2000-01-01"), observation_end = as.Date("2022-12-31"),units = 'pc1' )
+
+#M2YoY의 그래프 그리기
+M2YoY <- M2YoY %>% select(date, value)
+M2YoY<- xts(M2YoY, order.by = M2YoY$date)
+
+dygraph(M2YoY, main = "M2 Growth YoY(%)") %>%
+dyAxis("y", label = "M2 Growth") %>%
+dyRangeSelector(height = 20)
+
+```   
+
+Column {data-width=400}
+-------------------------------------
+### Market Cap / GDP
+
+```{r}
+
+#########################################################################################
+####marketcap/GDP spread 추출하기##############################################
+MK_GDP <- fredr(
+  series_id = "DDDM01USA156NWDB",
+  observation_start = as.Date("1990-01-01"),
+  observation_end = as.Date("2022-12-31"))
+
+#그래프그리기
+# MK_GDP <- MK_GDP %>% fredr(observation_start = as.Date("2000-01-01"), observation_end = as.Date("2022-05-31"))
+MK_GDP <- MK_GDP %>% select(date, value)
+MK_GDP<- xts(MK_GDP, order.by = MK_GDP$date)
+
+dygraph(MK_GDP, main = "MarketCAP/GDP USA(단위%)") %>%
+  dyAxis("y", label = "MarketCAP/GDP") %>%
+  dyRangeSelector(height = 20)
+```
+
+4. 선행지표 및 금리 
+=====================================     
+Column {data-width=400}
+-------------------------------------
+    
+### OECD 선행지수
+    
+```{r}
+#########################################################################################
+####OECD데이터 추출하기##############################################
+oecd <- fredr(
+  series_id = "USALOLITONOSTSAM",
+  observation_start = as.Date("1990-01-01"),
+  observation_end = as.Date("2022-05-31"))
+# head(oecd)
+
+#oecd의 그래프 그리기
+oecd <- oecd %>% select(date, value)
+oecd<- xts(oecd, order.by = oecd$date)
+
+dygraph(oecd, main = "OECD") %>%
+  dyAxis("y", label = "OECD") %>%
+  dyRangeSelector(height = 20)
+```
+ 
+### 금리와 인플레이션 Index
+    
+```{r}
+#########################################################################################
+####10y Breakeven Interest rate 추출하기##############################################
+bei10 <- fredr(
+  series_id = "T10YIE",
+  observation_start = as.Date("2000-01-01"),
+  observation_end = as.Date("2022-12-31"))
+
+#10yearbei의 그래프 그리기
+bei10 <- bei10 %>% select(date, value)
+bei10 <- xts(bei10$value, order.by = bei10$date)
+# dygraph(bei10, main = "BEI10 %") %>%
+#   dyAxis("y", label = "BEI10 %") %>%
+#   dyRangeSelector(height = 20)
+
+DGS10 <- fredr(
+  series_id = "DGS10",
+  observation_start = as.Date("2000-01-01"),
+  observation_end = as.Date("2022-12-31"))
+
+#10year의 그래프 그리기
+DGS10 <- DGS10 %>% select(date, value)
+DGS10<- xts(DGS10$value, order.by = DGS10$date)
+#합치기
+year10 <- cbind(bei10, DGS10)
+colnames(year10) <- c("BEI10", "10Year Treasury")
+dygraph(year10, main = "BEI10 & 10YTbond") %>% dyRangeSelector()
+``` 
+
+Column {data-width=400}
+-------------------------------------
+### IG Spread
+
+```{r}
+#########################################################################################
+####high yield spread 추출하기##############################################
+ig_spread <- fredr(
+  series_id = "BAMLC0A0CM",
+  observation_start = as.Date("2000-01-01"),
+  observation_end = as.Date("2022-12-31"))
+#그래프그리기
+# ig_spread <- ig_spread %>% fredr(observation_start = as.Date("2000-01-01"), observation_end = as.Date("2022-12-31"))
+
+ig_spread <- ig_spread %>% select(date, value)
+ig_spread <- xts(ig_spread, order.by = ig_spread$date)
+
+dygraph(ig_spread, main = "ig_spread") %>%
+  dyAxis("y", label = "ig_spread") %>%
+  dyRangeSelector(height = 20)
+```
+    
+<!-- ### Chart 4 -->
+
+```{r}
+```
+
+5. Valuation 
+=====================================     
+   
+Column {data-height=400}
+-------------------------------------
+### Shiller PE 
+
+```{r}
+#임시로 엑셀
+urlcape <- "http://www.econ.yale.edu/~shiller/data/ie_data.xls"
+tf = tempfile(fileext = '.xls')  #임시로 엑셀파일 만듦
+download.file(urlcape, tf, mode = 'wb')
+
+
+# #실제 excel 다운로드
+# outfile <- 'ie_data.xls'
+# download.file(urlcape, outfile, mode = 'wb')
+# df = read_excel("ie_data.xls", sheet = 'Data', skip =7) 
+# %>% select(DATE, Global)
+
+capepe <- as.data.frame(read_excel(tf, sheet ="Data", skip = 7))
+capepe <- capepe %>% select(Date, CAPE)
+capepe <- na.omit(capepe)
+capepe <- capepe[121:nrow(capepe),]
+capepe$CAPE <-  as.numeric(capepe$CAPE)
+dygraph(capepe, main = "CAPE") %>%
+  dyAxis("y", label = "CAPE") %>%
+  dyRangeSelector(height = 20)
+```
+
+### Excess Cape Yield(%)
+
+```{r}
+#yield
+Exyd <- as.data.frame(read_excel(tf, sheet ="Data", skip = 7))
+Exyd <- Exyd %>% select(Date, Yield)
+Exyd <- na.omit(Exyd)
+Exyd <- Exyd[121:nrow(Exyd),]
+Exyd$Yield <- Exyd$Yield*100 
+dygraph(Exyd, main = "ExcessCAPE Yield(단위:%)") %>% 
+  dyAxis("y", label = "ExcessCAPE Yield") %>% 
+  dyRangeSelector(height = 20) 
+
+```   
+
+Column {data-width=400}
+-------------------------------------
+<!-- ###  -->
+
+```{r}
+```
+    
+<!-- ### Chart 4 -->
+
+```{r}
+```
+
